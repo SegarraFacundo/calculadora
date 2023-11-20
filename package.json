@@ -12,6 +12,7 @@
   "dependencies": {
     "@tensorflow-models/coco-ssd": "^2.2.3",
     "@tensorflow/tfjs": "^4.13.0",
+    "@types/dom-speech-recognition": "^0.0.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
