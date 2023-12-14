@@ -1,13 +1,10 @@
-// Checking API availability
-
-
-export default class Recording {
-
+class Recording {
   recognition: SpeechRecognition;
   transcript: string;
-  statement: HTMLHeadingElement;
-  result: HTMLHeadingElement;
-  display: any;
+  resultado: string = "";
+  calculo: string = "";
+  titulo: string = "";
+
   constructor() {
     // API variables
     const SpeechRecognition: any =
@@ -16,14 +13,12 @@ export default class Recording {
     this.recognition.lang = "es-AR";
     this.recognition.continuous = true;
     this.transcript = "";
-    //this.recognition.interimResults = true;
+    this.recognition.interimResults = true;
 
-    this.statement = document.createElement("h5");
-    this.result = document.createElement("h4");
-    this.display = document.querySelector(".display");
-
-    this.addEventListeners();
+    this.addEventListeners();    
   }
+
+
 
   addEventListeners() {
     // Calculating and showing the result
@@ -31,26 +26,29 @@ export default class Recording {
       this.speechProcess(e);
     });
 
-    this.recognition.addEventListener("nomatch", (e: SpeechRecognitionEvent) => {
-      this.display.textContent = e.results.item.toString();
-    });
+    this.recognition.addEventListener(
+      "nomatch",
+      (e: SpeechRecognitionEvent) => {
+        console.log(e);
+      }
+    );
+    this.recognition.continuous = false
+    this.recognition.interimResults = false
   }
 
   // Methods for record and clear
   record() {
     try {
       this.recognition.start();
-    } catch { 
+      this.titulo = "Digame que calculo te resuelvo...";
+    } catch {
+      this.titulo = "Espera...";
     }
   }
 
   clear() {
-    //this.recognition.stop();
     this.transcript = "";
-    this.statement.textContent = "";
-    this.result.textContent = "";
-    this.recognition.stop();
-    this.record();
+    this.titulo = "";
   }
 
   stop() {
@@ -58,15 +56,21 @@ export default class Recording {
     this.recognition.stop();
   }
 
+  reiniciar() {
+    this.stop();
+    this.record();
+  }
+
   speechProcess(e: SpeechRecognitionEvent) {
+    if (this.transcript) {
+      this.reiniciar();
+      return
+    }
     this.transcript = Array.from(e.results)
       .map((result) => result[0])
       .map((result) => result.transcript)
       .join("");
-    console.log("this.transcript", this.transcript);
-    if (this.transcript.includes("limpiar")) this.clear();
-    if (this.transcript.includes("parar")) this.stop();
-    // Checking multiplications (* asterisk) and divisions (/ slash) for similar words
+
     if (this.transcript.includes("multiply")) {
       this.transcript = this.transcript.replace("multiply", "*");
     } else if (this.transcript.includes("x")) {
@@ -85,15 +89,20 @@ export default class Recording {
       this.transcript = this.transcript.replace("/d", "/");
     }
 
-    console.log(this.transcript);
 
-    // Displaying
-    this.statement.textContent = this.transcript;
-    //this.display.appendChild(this.statement);
 
-    this.result.textContent = eval(this.transcript);
-    this.transcript = "";
-    console.log("resultado", eval(this.transcript))
-    //this.display.appendChild(this.result);
+    try {
+      console.log(this.transcript);
+      const resultado = eval(this.transcript);
+      this.calculo = this.transcript;
+      this.resultado = resultado;
+      console.log(resultado);
+      
+      
+    } catch (e) {
+      this.reiniciar();
+    }
   }
 }
+
+export default Recording;
