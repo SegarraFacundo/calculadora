@@ -71,7 +71,7 @@ function App() {
         });
         recognition.addEventListener(
           "audioend",
-          (e: SpeechRecognitionEvent) => {
+          () => {
             setTimeout(() => {
               setIniciarVideo(true);
             }, 5000);
