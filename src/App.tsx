@@ -9,7 +9,9 @@ const SpeechRecognition: any =
 function App() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [titulo, setTitulo] = useState("Bienvenido");
-  
+
+  const [iniciarVideo, setIniciarVideo] = useState(true);
+
   const [calculo, setCalculo] = useState("");
   const [resultado, setResultado] = useState("");
   const seDectectoNuevaPersona = useRef(false);
@@ -17,14 +19,14 @@ function App() {
   const [transcript, setTranscript] = useState("");
   const [recognition] = useState(new SpeechRecognition());
 
-
   useEffect(() => {
-    if (videoRef) {
+    if (videoRef && iniciarVideo) {
       comenzarVideo();
     }
-  }, [videoRef]);
+  }, [videoRef, iniciarVideo]);
 
   const comenzarVideo = () => {
+    setIniciarVideo(false);
     clear();
     navigator.mediaDevices
       .getUserMedia({ video: true, audio: false })
@@ -55,23 +57,32 @@ function App() {
   const detectorDeRostro = async () => {
     if (videoRef.current) {
       await cargarModelosRostros();
-      const detectedFace = await faceapi
-        .detectSingleFace(videoRef.current, new faceapi.TinyFaceDetectorOptions());
+      const detectedFace = await faceapi.detectSingleFace(
+        videoRef.current,
+        new faceapi.TinyFaceDetectorOptions()
+      );
       seDectectoNuevaPersona.current = detectedFace != undefined;
       if (seDectectoNuevaPersona.current) {
         recognition.lang = "es-AR";
         recognition.continuous = true;
         recognition.interimResults = true;
         recognition.addEventListener("result", (e: SpeechRecognitionEvent) => {
-          speechProcess(e);
+          procesandoEscucha(e);
         });
+        recognition.addEventListener(
+          "audioend",
+          (e: SpeechRecognitionEvent) => {
+            setTimeout(() => {
+              setIniciarVideo(true);
+            }, 5000);
+          }
+        );
         recognition.continuous = false;
         recognition.interimResults = false;
         record();
       }
 
       if (!seDectectoNuevaPersona.current) {
-        console.log("esta apagado");
         setTitulo("Hasta luego");
         stop();
       }
@@ -84,11 +95,9 @@ function App() {
   function record(): void {
     try {
       recognition.start();
-      setTitulo("Abriendo el microfono")
-      setTimeout(() =>  setTitulo("Digame el calculo te resuelvo"), 3000)
-    } catch {
-     
-    }
+      setTitulo("Abriendo el microfono");
+      setTimeout(() => setTitulo("Digame el calculo te resuelvo"), 2000);
+    } catch {}
   }
 
   function clear(): void {
@@ -99,7 +108,6 @@ function App() {
   }
 
   function stop() {
-    //clear();
     recognition.stop();
   }
 
@@ -109,27 +117,25 @@ function App() {
   }
 
   useEffect(() => {
-    if(resultado) {
-      reiniciar()
+    if (resultado) {
+      reiniciar();
     }
-  }, [resultado])
+  }, [resultado]);
 
-  function speechProcess(e: SpeechRecognitionEvent) {
+  function procesandoEscucha(e: SpeechRecognitionEvent) {
     if (transcript) {
-      setTranscript("")
+      setTranscript("");
       reiniciar();
       return;
     }
-    const newTranscript = Array.from(e.results)
-    .map((result) => result[0])
-    .map((result) => result.transcript)
-    .join("");
-    setTranscript(
-      newTranscript
-    );
 
-    if (newTranscript.includes("limpiar")) 
-      reiniciar()
+    let newTranscript = Array.from(e.results)
+    .map((result) => result[0])
+    .map((result) => result.transcript).join("");
+
+    setTranscript(newTranscript);
+
+    if (newTranscript.includes("limpiar")) reiniciar();
 
     if (newTranscript.includes("multiply")) {
       setTranscript(newTranscript.replace("multiply", "*"));
@@ -141,8 +147,8 @@ function App() {
       setTranscript(newTranscript.replace("multiplied", "*"));
     }
 
-    if (newTranscript.includes("divide")) {
-      setTranscript(newTranscript.replace("divide", "/"));
+    if (newTranscript.includes(":")) {
+      setTranscript(newTranscript.replace(":", "/"));
     } else if (newTranscript.includes("divided")) {
       setTranscript(newTranscript.replace("divided", "/"));
     } else if (newTranscript.includes("/d")) {
@@ -153,14 +159,10 @@ function App() {
       const res = eval(newTranscript);
       setCalculo(newTranscript);
       setResultado(res);
-      
     } catch (e) {
-      console.error(e)
-      setCalculo("No se pudo resolver")
+      setCalculo(newTranscript);
+      setResultado("No se pudo resolver");
     }
-    setTimeout(() => {
-      comenzarVideo();
-    } , 5000)
   }
 
   return (
