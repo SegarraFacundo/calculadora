@@ -45,7 +45,7 @@ function App() {
   };
 
   const cargarModelosRostros = async () => {
-    const MODELOS_URL = "/models";
+    const MODELOS_URL = "models";
     await Promise.all([
       faceapi.nets.tinyFaceDetector.loadFromUri(MODELOS_URL),
       faceapi.nets.faceLandmark68Net.loadFromUri(MODELOS_URL),
